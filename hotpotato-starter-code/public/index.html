@@ -92,17 +92,9 @@
           wsClient.send(JSON.stringify({ type: CLIENT.MESSAGE.NEW_USER }));
         };
 
-        // TODO: Define the .onmessage() handler
-        // For each message type below, call the appropriate helper the proper value
-        // 'GAME_FULL' => updateDisplay(displayText);
-        // 'PLAYER_ASSIGNMENT' => setPlayerIndex(playerIndex)
-        // 'COUNTDOWN' => countDown(clockValue)
-        // 'NEW_POTATO_HOLDER' => updateCurrentPotatoHolder(newPotatoHolderIndex)
-        // 'GAME_OVER' => endGame()
-
         wsClient.onmessage = (messageEvent) => {
           const { type, payload } = JSON.parse(messageEvent.data);
-          console.log(type);
+
           switch (type) {
             case SERVER.MESSAGE.GAME_FULL:
               updateDisplay("Game is full. Try again later.");
@@ -110,14 +102,16 @@
             case SERVER.MESSAGE.PLAYER_ASSIGNMENT:
               setPlayerIndex(payload.clientPlayerIndex);
               break;
-            case SERVER.MESSAGE.COUNTDOWN:
-              countDown(clockValue);
+            case SERVER.BROADCAST.COUNTDOWN:
+              countDown(payload.clockValue);
               break;
-            case SERVER.MESSAGE.NEW_POTATO_HOLDER:
-              updateCurrentPotatoHolder(newPotatoHolderIndex);
+            case SERVER.BROADCAST.NEW_POTATO_HOLDER:
+              updateCurrentPotatoHolder(payload.newPotatoHolderIndex);
               break;
-            case SERVER.MESSAGE.GAME_OVER:
+            case SERVER.BROADCAST.GAME_OVER:
               endGame();
+              break;
+            default:
               break;
           }
         };
@@ -139,8 +133,14 @@
       function passThePotatoTo(newPotatoHolderIndex) {
         // set the potatoHolderIndex to be the player that was clicked on
         potatoHolderIndex = newPotatoHolderIndex;
+        const message = {
+          type: CLIENT.MESSAGE.PASS_POTATO,
+          payload: {
+            newPotatoHolderIndex,
+          },
+        };
 
-        // TODO: Send the server a 'PASS_POTATO' message with the newPotatoHolderIndex
+        wsClient.send(JSON.stringify(message));
       }
 
       ////////////////////////////////////////////////
@@ -149,8 +149,8 @@
 
       const display = document.getElementById("display");
 
-      function updateDisplay(displayText, backgroundColor) {
-        display.innerHTML = displayText;
+      function updateDisplay(value, backgroundColor) {
+        display.innerHTML = value;
         if (backgroundColor) {
           display.style.background = backgroundColor;
         }
@@ -181,16 +181,16 @@
       }
 
       // Render the current time with a different color based on the time value
-      function countDown(clockValue) {
+      function countDown(time) {
         let color = "#63fe34a1";
-        if (clockValue <= 5) {
+        if (time <= 5) {
           color = "#ff0000b5";
-        } else if (clockValue <= 15) {
+        } else if (time <= 15) {
           color = "#ff7800c7";
-        } else if (clockValue <= 25) {
+        } else if (time <= 25) {
           color = "#ffee00b5";
         }
-        updateDisplay(clockValue, color);
+        updateDisplay(time, color);
       }
 
       function endGame() {

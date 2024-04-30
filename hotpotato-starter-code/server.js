@@ -38,68 +38,89 @@ const server = http.createServer((req, res) => {
 ////////////////// WS LOGIC ///////////////////
 ///////////////////////////////////////////////
 
+// TODO: Create the WebSocket Server (ws) using the HTTP server
 const wsServer = new WebSocket.Server({ server });
-
-wsServer.on("connection", (socket) => {
-  console.log("New user has joined the server! :)");
-  socket.on("message", (data) => {
-    const message = JSON.parse(data);
-    switch (message.type) {
-      case CLIENT.MESSAGE.NEW_USER:
-        handleNewUser(socket);
-        break;
-      case CLIENT.MESSAGE.PASS_POTATO:
-        passThePotatoTo(message.newPotatoHolderIndex);
-        break;
-      default:
-        console.log("Unknown message type received: ", message.type);
-    }
-  });
-});
 
 // TODO: Define the websocket server 'connection' handler
 // TODO: Define the socket 'message' handler
 // 'NEW_USER' => handleNewUser(socket)
 // 'PASS_POTATO' => passThePotatoTo(newPotatoHolderIndex)
+wsServer.on("connection", (socket) => {
+  console.log("A new client has joined the server!");
+
+  socket.on("message", (data) => {
+    console.log(data);
+    const { type, payload } = JSON.parse(data);
+
+    switch (type) {
+      case CLIENT.MESSAGE.NEW_USER:
+        handleNewUser(socket);
+        break;
+      case CLIENT.MESSAGE.PASS_POTATO:
+        passThePotatoTo(payload.newPotatoHolderIndex);
+        break;
+      default:
+        break;
+    }
+  });
+});
 
 ///////////////////////////////////////////////
 ////////////// HELPER FUNCTIONS ///////////////
 ///////////////////////////////////////////////
 
 // TODO: Implement the broadcast pattern
+function broadcast(data, socketToOmit) {
+  wsServer.clients.forEach((connectedClient) => {
+    if (
+      connectedClient.readyState === WebSocket.OPEN &&
+      connectedClient !== socketToOmit
+    ) {
+      connectedClient.send(JSON.stringify(data));
+    }
+  });
+}
 
 function handleNewUser(socket) {
   // Until there are 4 players in the game....
   if (nextPlayerIndex < 4) {
-    socket.send(
-      JSON.stringify({
-        type: SERVER.MESSAGE.PLAYER_ASSIGNMENT,
-        payload: { clientPlayerIndex: nextPlayerIndex },
-      })
-    );
+    // TODO: Send PLAYER_ASSIGNMENT to the socket with a clientPlayerIndex
+    const message = {
+      type: SERVER.MESSAGE.PLAYER_ASSIGNMENT,
+      payload: { clientPlayerIndex: nextPlayerIndex },
+    };
+    socket.send(JSON.stringify(message));
 
     // Then, increment the number of players in the game
     nextPlayerIndex++;
 
-    // If they are the 4th player, start the game
+    // If there are 4 players in the game, start the game
     if (nextPlayerIndex === 4) {
       // Choose a random potato holder to start
       const randomFirstPotatoHolder = Math.floor(Math.random() * 4);
       passThePotatoTo(randomFirstPotatoHolder);
 
-      // Start the timer
+      // Start the timer ticking
       startTimer();
     }
   }
 
   // If 4 players are already in the game...
   else {
-    socket.send(JSON.stringify({ type: SERVER.MESSAGE.GAME_FULL }));
+    // TODO: Send GAME_FULL to the socket
+    const message = {
+      type: SERVER.MESSAGE.GAME_FULL,
+    };
+    socket.send(JSON.stringify(message));
   }
 }
 
 function passThePotatoTo(newPotatoHolderIndex) {
   // TODO: Broadcast a NEW_POTATO_HOLDER message with the newPotatoHolderIndex
+  broadcast({
+    type: SERVER.BROADCAST.NEW_POTATO_HOLDER,
+    payload: { newPotatoHolderIndex },
+  });
 }
 
 function startTimer() {
@@ -110,6 +131,10 @@ function startTimer() {
   const interval = setInterval(() => {
     if (clockValue > 0) {
       // TODO: broadcast 'COUNTDOWN' with the clockValue
+      broadcast({
+        type: SERVER.BROADCAST.COUNTDOWN,
+        payload: { clockValue },
+      });
 
       // decrement until the clockValue reaches 0
       clockValue--;
@@ -121,6 +146,9 @@ function startTimer() {
       nextPlayerIndex = 0; // reset the players index
 
       // TODO: Broadcast 'GAME_OVER'
+      broadcast({
+        type: SERVER.BROADCAST.GAME_OVER,
+      });
     }
   }, 1000);
 }
