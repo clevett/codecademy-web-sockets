@@ -171,8 +171,9 @@
       function updateCurrentPotatoHolder(newPotatoHolderIndex) {
         // remove the hasPotato class from any existing elements that have it
         potatoHolderIndex = newPotatoHolderIndex;
+
         playerElements.forEach((playerElement, i) => {
-          const playerAvatar = playerElement.childNodes[0];
+          const playerAvatar = playerElement.childNodes[1];
           playerAvatar.src =
             i === potatoHolderIndex
               ? playerAvatar.src.replace("COLD", "HOT")

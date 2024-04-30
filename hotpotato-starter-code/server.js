@@ -49,7 +49,6 @@ wsServer.on("connection", (socket) => {
   console.log("A new client has joined the server!");
 
   socket.on("message", (data) => {
-    console.log(data);
     const { type, payload } = JSON.parse(data);
 
     switch (type) {
